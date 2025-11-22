@@ -6,16 +6,19 @@ let isGridView = true;
 
 /**
  * Global state to track if the UI is currently paused/blurred.
- * Used to prevent unnecessary DOM updates if the state hasn't changed.
  */
 let pausedState = false;
 
 /**
- * Stores the current server configuration ID.
- * This ID is updated by the server whenever the shared folder path changes.
- * The client checks this ID; if it differs from the stored one, the page is reloaded.
+ * Stores the current server configuration ID to detect folder changes.
  */
 let currentConfigId = null;
+
+/**
+ * Stores the current active download request ID.
+ * Used for polling and cancellation.
+ */
+let currentReqId = null;
 
 /**
  * Interval ID for polling the status of a specific download request.
@@ -23,78 +26,181 @@ let currentConfigId = null;
 let pollInterval = null;
 
 /**
- * Toggles the file browser layout between Grid and List view.
- * Updates CSS classes and icon visibility accordingly.
+ * Initialization function to restore the user's view preference (Grid/List)
+ * from LocalStorage on page load.
  */
-function toggleView() {
-    isGridView = !isGridView;
+function loadViewPreference() {
+    const savedMode = localStorage.getItem('viewMode');
+    if (savedMode === 'list') {
+        toggleView(true);
+    }
+}
+
+/**
+ * Toggles the file browser layout between Grid and List view.
+ *
+ * Grid View: Vertical cards, large icons.
+ * List View: Fixed height rows, horizontal layout, right-aligned buttons.
+ *
+ * @param {boolean} forceList - If true, force the view to List mode regardless of current state.
+ */
+function toggleView(forceList = false) {
+    if (forceList) {
+        isGridView = false;
+    } else {
+        isGridView = !isGridView;
+    }
+
+    // Save preference to LocalStorage
+    localStorage.setItem('viewMode', isGridView ? 'grid' : 'list');
+
     const container = document.getElementById('fileContainer');
     const icon = document.getElementById('viewIcon');
     const cards = document.querySelectorAll('.file-card');
 
     if (isGridView) {
-        // Switch to Grid View
-        container.classList.remove('flex', 'flex-col');
-        container.classList.add('grid', 'grid-cols-1', 'sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4');
+        // ============================
+        // ENABLE GRID VIEW
+        // ============================
+        container.classList.remove('flex', 'flex-col', 'gap-3');
+        container.classList.add('grid', 'grid-cols-1', 'sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4', 'gap-4');
         icon.className = "fas fa-list-ul";
 
         cards.forEach(el => {
-            el.classList.remove('flex-row', 'items-center', 'min-h-[60px]');
-            el.classList.add('flex-col', 'min-h-[180px]');
-            // Show large icons in grid view
-            const iconBg = el.querySelector('.fa-file, .fa-folder').closest('.absolute');
-            if(iconBg) iconBg.classList.remove('hidden');
+            // Restore Card Container for Grid
+            el.classList.remove('flex-row', 'items-center', 'h-20', 'px-5', 'py-0', 'w-full');
+            el.classList.add('flex-col', 'justify-between', 'min-h-[180px]', 'p-4');
+
+            // Show Background Decorations
+            const bgIcon = el.querySelector('.bg-icon');
+            if (bgIcon) bgIcon.classList.remove('hidden');
+
+            // Restore Inner Wrapper (Vertical Stack)
+            const innerWrapper = el.querySelector('.inner-wrapper');
+            if (innerWrapper) {
+                innerWrapper.classList.remove('flex-row', 'items-center');
+                innerWrapper.classList.add('flex-col');
+            }
+
+            // Restore Icon Size (Large)
+            const iconWrapper = el.querySelector('.icon-wrapper');
+            if (iconWrapper) {
+                iconWrapper.classList.remove('w-10', 'h-10', 'mb-0');
+                iconWrapper.classList.add('w-12', 'h-12', 'mb-3');
+            }
+
+            // Restore Text Alignment (Left, but constrained width)
+            const textContent = el.querySelector('.text-content');
+            if (textContent) {
+                textContent.classList.remove('ml-4', 'flex-1', 'flex', 'flex-col', 'justify-center');
+                // Allow line clamping in grid
+                const title = textContent.querySelector('h3');
+                if (title) {
+                    title.classList.remove('truncate');
+                    title.classList.add('line-clamp-2', 'break-all');
+                }
+            }
+
+            // Restore Button Position (Bottom)
+            const btnWrapper = el.querySelector('.action-btn-wrapper');
+            if (btnWrapper) {
+                btnWrapper.classList.remove('w-auto', 'ml-auto', 'pt-0', 'mt-0');
+                btnWrapper.classList.add('w-full', 'pt-4', 'mt-auto');
+
+                const btn = btnWrapper.querySelector('button');
+                if(btn) btn.classList.remove('px-6', 'py-2');
+                if(btn) btn.classList.add('w-full', 'py-2.5');
+
+                const btnText = btnWrapper.querySelector('.btn-text');
+                if(btnText) btnText.classList.remove('hidden', 'sm:inline');
+            }
         });
+
     } else {
-        // Switch to List View
-        container.classList.remove('grid', 'grid-cols-1', 'sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4');
-        container.classList.add('flex', 'flex-col');
+        // ============================
+        // ENABLE LIST VIEW
+        // ============================
+        container.classList.remove('grid', 'grid-cols-1', 'sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4', 'gap-4');
+        container.classList.add('flex', 'flex-col', 'gap-3');
         icon.className = "fas fa-th-large";
 
         cards.forEach(el => {
-            el.classList.remove('flex-col', 'min-h-[180px]');
-            el.classList.add('flex-row', 'items-center', 'min-h-[60px]', 'gap-4');
-            // Hide large background icons in list view
-            const iconBg = el.querySelector('.fa-file, .fa-folder').closest('.absolute');
-            if(iconBg) iconBg.classList.add('hidden');
+            // Apply Row Styling (Fixed Height h-20)
+            el.classList.remove('flex-col', 'justify-between', 'min-h-[180px]', 'p-4');
+            el.classList.add('flex-row', 'items-center', 'h-20', 'px-5', 'py-0', 'w-full');
+
+            // Hide Background Decorations
+            const bgIcon = el.querySelector('.bg-icon');
+            if (bgIcon) bgIcon.classList.add('hidden');
+
+            // Set Inner Wrapper to Row
+            const innerWrapper = el.querySelector('.inner-wrapper');
+            if (innerWrapper) {
+                innerWrapper.classList.remove('flex-col');
+                innerWrapper.classList.add('flex-row', 'items-center');
+            }
+
+            // Shrink Icon Size
+            const iconWrapper = el.querySelector('.icon-wrapper');
+            if (iconWrapper) {
+                iconWrapper.classList.remove('w-12', 'h-12', 'mb-3');
+                iconWrapper.classList.add('w-10', 'h-10', 'mb-0');
+            }
+
+            // Align Text (Left, Middle)
+            const textContent = el.querySelector('.text-content');
+            if (textContent) {
+                textContent.classList.add('ml-4', 'flex-1', 'flex', 'flex-col', 'justify-center');
+                // Ensure text truncates nicely in list view instead of breaking
+                const title = textContent.querySelector('h3');
+                if (title) {
+                    title.classList.remove('line-clamp-2', 'break-all');
+                    title.classList.add('truncate');
+                }
+            }
+
+            // Move Button to Right Side
+            const btnWrapper = el.querySelector('.action-btn-wrapper');
+            if (btnWrapper) {
+                btnWrapper.classList.remove('w-full', 'pt-4', 'mt-auto');
+                btnWrapper.classList.add('w-auto', 'ml-auto', 'pt-0', 'mt-0');
+
+                const btn = btnWrapper.querySelector('button');
+                if(btn) btn.classList.remove('w-full', 'py-2.5');
+                if(btn) btn.classList.add('px-6', 'py-2');
+
+                // Optional: Hide text on very small screens in list view if needed
+                const btnText = btnWrapper.querySelector('.btn-text');
+                if(btnText) btnText.classList.add('hidden', 'sm:inline');
+            }
         });
     }
 }
 
 /**
  * Periodically polls the server status endpoint.
- * Handles:
- * 1. Forced logout (if session is invalid).
- * 2. Server offline state (redirects to logout).
- * 3. Configuration changes (reloads page if root folder changes).
- * 4. Pause state (toggles blur overlay).
  */
 function checkStatus() {
     fetch('/api/client/status')
         .then(response => response.json())
         .then(data => {
-            // Case 1: Admin forced a logout via 'Logout All'
             if (data.force_logout) {
                 window.location.href = '/login?reason=logout';
                 return;
             }
 
-            // Case 2: Server is explicitly set to Offline
             if (!data.running) {
                 window.location.href = '/logout';
                 return;
             }
 
-            // Case 3: Detect if the Admin changed the root folder
             if (currentConfigId === null) {
                 currentConfigId = data.config_id;
             } else if (currentConfigId !== data.config_id) {
-                // Config ID changed, redirect to base files path to refresh content
                 window.location.href = '/files';
                 return;
             }
 
-            // Case 4: Handle UI Pause/Blur
             const overlay = document.getElementById('pauseOverlay');
             const mainContent = document.getElementById('main-content');
 
@@ -112,45 +218,38 @@ function checkStatus() {
 }
 
 /**
- * Initiates the download process for a specific file.
- * Opens the approval modal and sends a request to the server.
- *
- * @param {string} filename - The name of the file to download.
- * @param {string} path - The relative path to the file.
+ * Initiates the download process.
  */
 function initiateDownload(filename, path) {
     const modal = document.getElementById('approvalModal');
     const content = document.getElementById('approvalContent');
 
-    // Show the modal
     modal.classList.remove('opacity-0', 'pointer-events-none');
     content.classList.remove('scale-95');
     content.classList.add('scale-100');
 
-    // Reset modal state to 'Waiting'
     document.getElementById('statusWaiting').classList.remove('hidden');
     document.getElementById('statusRejected').classList.add('hidden');
     document.getElementById('statusApproved').classList.add('hidden');
     document.getElementById('reqIdDisplay').innerText = "ID: ...";
 
-    // Send request to server
+    currentReqId = null;
+
     fetch('/api/client/request_download', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({filename: filename, path: path})
     })
         .then(response => {
-            // If the server returns 404 (e.g., file moved), throw error
             if (!response.ok) throw new Error("File not found or server error");
             return response.json();
         })
         .then(data => {
             if (data.status === 'approved') {
-                // Approval not required, download immediately
                 closeModal();
                 window.location.href = data.direct_link;
             } else if (data.status === 'pending') {
-                // Approval required, start polling
+                currentReqId = data.req_id;
                 document.getElementById('reqIdDisplay').innerText = "ID: " + data.req_id.substring(0, 8);
                 pollRequest(data.req_id);
             }
@@ -158,17 +257,27 @@ function initiateDownload(filename, path) {
         .catch(err => {
             console.error("Download Request Failed:", err);
             closeModal();
-            // Refresh page if the file structure is out of sync
             alert("Could not request file. The shared folder might have changed.");
             window.location.reload();
         });
 }
 
 /**
- * Polls the server to check the status of a pending download request.
- * Stops polling once the request is approved or rejected.
- *
- * @param {string} reqId - The unique ID of the download request.
+ * Cancels the current download request.
+ */
+function cancelDownload() {
+    if (currentReqId) {
+        fetch('/api/client/cancel_request', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({req_id: currentReqId})
+        }).catch(e => console.error(e));
+    }
+    closeModal();
+}
+
+/**
+ * Polls the specific request ID.
  */
 function pollRequest(reqId) {
     pollInterval = setInterval(() => {
@@ -178,7 +287,6 @@ function pollRequest(reqId) {
                 if (data.status === 'approved') {
                     clearInterval(pollInterval);
                     showApproved();
-                    // Short delay before download starts
                     setTimeout(() => {
                         window.location.href = data.link;
                         closeModal();
@@ -191,25 +299,16 @@ function pollRequest(reqId) {
     }, 1000);
 }
 
-/**
- * Updates the modal UI to show the Approved state.
- */
 function showApproved() {
     document.getElementById('statusWaiting').classList.add('hidden');
     document.getElementById('statusApproved').classList.remove('hidden');
 }
 
-/**
- * Updates the modal UI to show the Rejected state.
- */
 function showRejected() {
     document.getElementById('statusWaiting').classList.add('hidden');
     document.getElementById('statusRejected').classList.remove('hidden');
 }
 
-/**
- * Closes the approval modal and stops any active polling.
- */
 function closeModal() {
     const modal = document.getElementById('approvalModal');
     const content = document.getElementById('approvalContent');
@@ -219,7 +318,11 @@ function closeModal() {
     content.classList.remove('scale-100');
 
     if (pollInterval) clearInterval(pollInterval);
+    currentReqId = null;
 }
 
-// Start the status polling loop
+// Initialize View Preference
+loadViewPreference();
+
+// Start polling
 setInterval(checkStatus, 1000);

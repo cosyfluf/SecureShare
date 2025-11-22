@@ -12,7 +12,7 @@
 </head>
 <body class="bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30 min-h-screen flex flex-col">
 
-<!-- CONTENT WRAPPER (Blurred when paused) -->
+<!-- CONTENT WRAPPER -->
 <div id="main-content" class="flex-1 flex flex-col transition-all duration-500">
 
     <!-- Navbar -->
@@ -30,11 +30,11 @@
 
             <div class="flex items-center gap-4">
                 <!-- View Toggle Button -->
-                <button onclick="toggleView()" class="p-2 text-slate-400 hover:text-white transition" title="Toggle View">
+                <button onclick="toggleView()" class="p-2 text-slate-400 hover:text-white transition rounded-full hover:bg-white/5" title="Toggle View">
                     <i id="viewIcon" class="fas fa-list-ul"></i>
                 </button>
 
-                <a href="/logout" class="text-xs font-semibold text-red-400 hover:text-red-300 border border-red-500/20 bg-red-500/10 px-3 py-1.5 rounded-full transition">
+                <a href="/logout" class="text-xs font-semibold text-red-400 hover:text-red-300 border border-red-500/20 bg-red-500/10 px-3 py-1.5 rounded-full transition hover:bg-red-500/20">
                     Logout
                 </a>
             </div>
@@ -45,47 +45,80 @@
     <main class="flex-1 container mx-auto px-4 py-8 max-w-7xl">
 
         <!-- Grid/List Container -->
+        <!-- The initial class list defines the Grid View layout. JS toggles this. -->
         <div id="fileContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 
             <!-- Back Button -->
+            <!-- Note: Includes specific classes like inner-wrapper to be compatible with JS toggle logic -->
             {% if parent is not none %}
-            <a href="{{ url_for('client_files', path=parent) }}" class="file-card group bg-slate-900/50 border border-white/5 hover:border-slate-600 rounded-xl p-4 flex flex-col items-center justify-center min-h-[180px] transition-all hover:-translate-y-1">
-                <i class="fas fa-level-up-alt text-2xl text-slate-500 mb-2 group-hover:text-slate-300"></i>
-                <span class="text-sm font-medium text-slate-400">Go Back</span>
+            <a href="{{ url_for('client_files', path=parent) }}" class="file-card group bg-slate-900/40 border border-white/5 hover:border-slate-600 rounded-xl p-4 flex flex-col items-center justify-center min-h-[180px] transition-all">
+                <div class="inner-wrapper flex flex-col items-center justify-center w-full h-full">
+                    <div class="icon-wrapper w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 group-hover:text-slate-300 mb-2 transition-colors">
+                        <i class="fas fa-level-up-alt"></i>
+                    </div>
+                    <span class="text-content text-sm font-medium text-slate-400 text-center">Go Back</span>
+                </div>
             </a>
             {% endif %}
 
             <!-- Folders Loop -->
             {% for folder in folders %}
-            <a href="{{ url_for('client_files', path=folder.path) }}" class="file-card group bg-slate-900/50 border border-white/5 hover:border-amber-500/30 hover:bg-slate-900 rounded-xl p-4 flex flex-col justify-between min-h-[180px] transition-all hover:-translate-y-1 relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-2 text-amber-500/20 group-hover:text-amber-500/50 transition"><i class="fas fa-folder text-6xl"></i></div>
-                <div class="relative z-10">
-                    <div class="w-10 h-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3 border border-amber-500/20">
+            <a href="{{ url_for('client_files', path=folder.path) }}" class="file-card group bg-slate-900/40 border border-white/5 hover:border-amber-500/30 hover:bg-slate-900/80 rounded-xl p-4 flex flex-col justify-between min-h-[180px] relative overflow-hidden transition-all duration-300">
+
+                <!-- Background Decoration (Hidden in List View) -->
+                <div class="bg-icon absolute top-0 right-0 p-2 text-amber-500/5 group-hover:text-amber-500/10 transition duration-500 pointer-events-none">
+                    <i class="fas fa-folder text-8xl"></i>
+                </div>
+
+                <!-- Inner Content Wrapper (Targeted by JS) -->
+                <div class="inner-wrapper relative z-10 flex flex-col h-full w-full">
+
+                    <!-- Icon -->
+                    <div class="icon-wrapper w-12 h-12 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3 border border-amber-500/10 shadow-lg shadow-amber-900/20 group-hover:scale-110 transition-transform flex-shrink-0">
                         <i class="fas fa-folder"></i>
                     </div>
-                    <h3 class="font-medium text-slate-200 truncate">{{ folder.name }}</h3>
-                    <p class="text-xs text-slate-500">Directory</p>
+
+                    <!-- Text Info -->
+                    <div class="text-content">
+                        <h3 class="font-medium text-slate-200 truncate group-hover:text-amber-400 transition-colors">{{ folder.name }}</h3>
+                        <p class="text-xs text-slate-500 mt-1">Directory</p>
+                    </div>
                 </div>
             </a>
             {% endfor %}
 
             <!-- Files Loop -->
             {% for file in files %}
-            <div class="file-card group bg-slate-900/50 border border-white/5 hover:border-cyan-500/30 hover:bg-slate-900 rounded-xl p-4 flex flex-col justify-between min-h-[180px] transition-all hover:-translate-y-1 relative overflow-hidden">
-                <div class="absolute top-0 right-0 p-2 text-cyan-500/10 group-hover:text-cyan-500/20 transition"><i class="fas fa-file text-6xl"></i></div>
+            <div class="file-card group bg-slate-900/40 border border-white/5 hover:border-cyan-500/30 hover:bg-slate-900/80 rounded-xl p-4 flex flex-col justify-between min-h-[180px] relative overflow-hidden transition-all duration-300">
 
-                <div class="relative z-10">
-                    <div class="w-10 h-10 rounded-full bg-cyan-500/10 text-cyan-500 flex items-center justify-center mb-3 border border-cyan-500/20">
-                        <i class="fas fa-file-alt"></i>
-                    </div>
-                    <h3 class="font-medium text-slate-200 break-all line-clamp-2" title="{{ file.name }}">{{ file.name }}</h3>
-                    <p class="text-xs text-slate-500">{{ file.size }} MB</p>
+                <!-- Background Decoration -->
+                <div class="bg-icon absolute top-0 right-0 p-2 text-cyan-500/5 group-hover:text-cyan-500/10 transition duration-500 pointer-events-none">
+                    <i class="fas fa-file text-8xl"></i>
                 </div>
 
-                <!-- Download Action -->
-                <button onclick="initiateDownload('{{ file.name }}', '{{ file.path }}')" class="relative z-10 mt-4 w-full py-2 rounded-lg bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wide transition-colors border border-white/5">
-                    Download
-                </button>
+                <!-- Inner Content Wrapper -->
+                <div class="inner-wrapper relative z-10 flex flex-col h-full w-full">
+
+                    <!-- Icon -->
+                    <div class="icon-wrapper w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mb-3 border border-cyan-500/10 shadow-lg shadow-cyan-900/20 group-hover:scale-110 transition-transform flex-shrink-0">
+                        <i class="fas fa-file-alt"></i>
+                    </div>
+
+                    <!-- Text Info -->
+                    <div class="text-content min-w-0">
+                        <h3 class="font-medium text-slate-200 break-all line-clamp-2 group-hover:text-cyan-300 transition-colors" title="{{ file.name }}">{{ file.name }}</h3>
+                        <p class="text-xs text-slate-500 mt-1 font-mono">{{ file.size }}</p>
+                    </div>
+
+                    <!-- Action Button Wrapper -->
+                    <div class="action-btn-wrapper mt-auto w-full pt-4">
+                        <button onclick="initiateDownload('{{ file.name }}', '{{ file.path }}')" class="action-btn w-full py-2.5 rounded-lg bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wide transition-all border border-white/5 shadow-lg group-hover:shadow-cyan-500/20 whitespace-nowrap">
+                            <span class="flex items-center justify-center gap-2">
+                                <i class="fas fa-download"></i> <span class="btn-text">Download</span>
+                            </span>
+                        </button>
+                    </div>
+                </div>
             </div>
             {% endfor %}
 
@@ -110,26 +143,44 @@
 
         <!-- Waiting State -->
         <div id="statusWaiting">
-            <div class="flex justify-center mb-4">
-                <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-cyan-500"></div>
+            <div class="flex justify-center mb-6">
+                <div class="relative">
+                    <div class="w-12 h-12 rounded-full border-2 border-cyan-500/20 border-t-cyan-500 animate-spin"></div>
+                    <div class="absolute inset-0 flex items-center justify-center text-cyan-500 text-[10px] font-bold">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                </div>
             </div>
-            <h3 class="text-lg font-bold text-white mb-1">Waiting for Approval</h3>
-            <p class="text-slate-400 text-sm mb-4">Please wait while the admin reviews your request.</p>
-            <div class="text-xs font-mono text-slate-600" id="reqIdDisplay">ID: ...</div>
+            <h3 class="text-lg font-bold text-white mb-2">Waiting for Approval</h3>
+            <p class="text-slate-400 text-sm mb-4 leading-relaxed">Admin approval is required for this file. Please wait...</p>
+
+            <div class="bg-slate-950 rounded-lg p-3 border border-slate-800 mb-6">
+                <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Request ID</div>
+                <div class="font-mono text-cyan-400 text-sm" id="reqIdDisplay">ID: ...</div>
+            </div>
+
+            <button onclick="cancelDownload()" class="w-full py-2 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition text-xs font-semibold">
+                Cancel Request
+            </button>
         </div>
 
         <!-- Rejected State -->
         <div id="statusRejected" class="hidden">
-            <div class="text-red-500 text-4xl mb-4"><i class="fas fa-times-circle"></i></div>
+            <div class="w-12 h-12 mx-auto bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mb-4 border border-red-500/20">
+                <i class="fas fa-times"></i>
+            </div>
             <h3 class="text-lg font-bold text-white">Request Denied</h3>
             <p class="text-slate-400 text-sm mt-2">The admin rejected this download.</p>
-            <button onclick="closeModal()" class="mt-6 px-4 py-2 bg-slate-800 rounded text-sm text-white hover:bg-slate-700">Close</button>
+            <button onclick="closeModal()" class="mt-6 w-full py-2 bg-slate-800 rounded-lg text-sm text-white hover:bg-slate-700 border border-slate-700 transition">Close</button>
         </div>
 
         <!-- Approved State -->
         <div id="statusApproved" class="hidden">
-            <div class="text-emerald-500 text-4xl mb-4"><i class="fas fa-check-circle"></i></div>
-            <h3 class="text-lg font-bold text-white">Download Starting...</h3>
+            <div class="w-12 h-12 mx-auto bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mb-4 border border-emerald-500/20">
+                <i class="fas fa-check"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white">Approved!</h3>
+            <p class="text-slate-400 text-sm mt-1">Download starting...</p>
         </div>
 
     </div>
