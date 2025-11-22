@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure File Browser</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    animation: { 'fade-in': 'fadeIn 0.5s ease-in-out' },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#1a1b26] to-black text-slate-200 min-h-screen flex flex-col font-sans selection:bg-cyan-500/30">
+
+<!-- Navbar -->
+<nav class="sticky top-0 z-50 w-full border-b border-white/10 bg-slate-900/70 backdrop-blur-md shadow-lg transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center h-20">
+            <div class="flex items-center gap-4">
+                <div class="relative group">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-cyan-400 to-blue-600 rounded-lg blur opacity-25 group-hover:opacity-75 transition duration-200"></div>
+                    <div class="relative bg-slate-800 text-cyan-400 p-3 rounded-lg border border-white/10">
+                        <i class="fas fa-shield-alt text-xl"></i>
+                    </div>
+                </div>
+                <div class="flex flex-col">
+                    <h2 class="text-lg font-bold text-white tracking-wide">Secure Share</h2>
+                    <div class="flex items-center text-xs text-slate-400 font-mono mt-0.5">
+                        <i class="fas fa-folder-open mr-2 text-cyan-500"></i>
+                        <span class="truncate max-w-[150px] sm:max-w-xs md:max-w-md opacity-80" title="{{ current_path }}">
+                                /{{ current_path }}
+                            </span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center">
+                    <span class="px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-bold border border-cyan-500/20 shadow-[0_0_10px_rgba(34,211,238,0.2)] flex items-center gap-2">
+                        <span class="relative flex h-2 w-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                        </span>
+                        Connected
+                    </span>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Main Content -->
+<main class="flex-grow container mx-auto px-4 py-10 max-w-7xl animate-fade-in">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+
+        <!-- "Go Back" Button (Only if parent_path exists) -->
+        {% if parent_path is not none %}
+        <a href="{{ url_for('list_files', path=parent_path) }}" class="group relative bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 hover:border-slate-500/50 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 flex flex-col items-center justify-center h-full min-h-[200px]">
+            <div class="w-16 h-16 mb-4 rounded-full bg-slate-800/50 flex items-center justify-center border border-white/5 group-hover:bg-slate-700 transition-colors">
+                <i class="fas fa-level-up-alt text-3xl text-slate-400 group-hover:text-slate-200"></i>
+            </div>
+            <h3 class="text-sm font-semibold text-slate-300">Go Back</h3>
+        </a>
+        {% endif %}
+
+        <!-- FOLDERS LOOP -->
+        {% for folder in folders %}
+        <a href="{{ url_for('list_files', path=folder.rel_path) }}" class="group relative bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 hover:border-amber-500/30 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(245,158,11,0.1)] flex flex-col justify-between overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+            <div class="relative z-10 flex flex-col items-center text-center mb-4">
+                <div class="w-16 h-16 mb-4 rounded-full bg-slate-800/80 flex items-center justify-center border border-white/5 shadow-inner group-hover:scale-110 transition-transform duration-300">
+                    <!-- Amber Icon for Folders -->
+                    <i class="fas fa-folder text-3xl text-amber-500 group-hover:text-amber-400 drop-shadow-[0_0_10px_rgba(245,158,11,0.4)] transition-colors"></i>
+                </div>
+                <h3 class="text-sm font-semibold text-slate-100 mb-1 break-all line-clamp-2 group-hover:text-white">
+                    {{ folder.name }}
+                </h3>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                        Folder
+                    </span>
+            </div>
+            <div class="relative z-10 mt-2 w-full">
+                <div class="w-full py-2 px-4 rounded-xl text-sm font-medium text-slate-400 bg-white/5 border border-white/5 text-center group-hover:bg-amber-600 group-hover:text-white group-hover:border-transparent transition-all">
+                    Open
+                </div>
+            </div>
+        </a>
+        {% endfor %}
+
+        <!-- FILES LOOP -->
+        {% for file in files %}
+        <div class="group relative bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 hover:border-cyan-500/30 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgb(0,0,0,0.5)] flex flex-col justify-between overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+            <div class="relative z-10 flex flex-col items-center text-center mb-4">
+                <div class="w-16 h-16 mb-4 rounded-full bg-slate-800/80 flex items-center justify-center border border-white/5 shadow-inner group-hover:scale-110 transition-transform duration-300">
+                    <!-- Cyan Icon for Files -->
+                    <i class="fas fa-file-invoice text-3xl text-cyan-500 group-hover:text-cyan-300 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)] transition-colors"></i>
+                </div>
+                <h3 class="text-sm font-semibold text-slate-100 mb-1 break-all line-clamp-2 leading-snug group-hover:text-white" title="{{ file.name }}">
+                    {{ file.name }}
+                </h3>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-900/50 text-slate-400 border border-white/5">
+                        {{ file.size }} MB
+                    </span>
+            </div>
+
+            <div class="relative z-10 mt-2">
+                <a href="{{ url_for('download_file', filename=file.rel_path) }}"
+                   class="block w-full py-2.5 px-4 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 border border-white/10 transform active:scale-95 transition-all duration-200 text-center">
+                    <i class="fas fa-download mr-2"></i> Download
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Empty State (only if no files AND no folders) -->
+        {% if not files and not folders %}
+        <div class="col-span-full flex flex-col items-center justify-center py-32 text-center">
+            <div class="relative">
+                <div class="absolute -inset-4 bg-cyan-500/20 rounded-full blur-xl"></div>
+                <i class="fas fa-folder-open text-6xl text-slate-700 relative z-10"></i>
+            </div>
+            <h3 class="mt-6 text-xl font-semibold text-slate-200">This folder is empty</h3>
+            <p class="text-slate-500 mt-2 max-w-xs mx-auto">No files found in /{{ current_path }}</p>
+        </div>
+        {% endif %}
+    </div>
+</main>
+
+<footer class="border-t border-white/5 bg-black/20 backdrop-blur-sm py-6 mt-auto">
+    <div class="container mx-auto px-4 text-center">
+        <p class="text-slate-500 text-xs">
+            &copy; Secured Local Environment. <span class="text-cyan-500/50">AES-256 Encrypted Connection</span> (Simulation).
+        </p>
+    </div>
+</footer>
+</body>
+</html>
