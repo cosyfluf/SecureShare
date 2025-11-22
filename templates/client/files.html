@@ -5,17 +5,10 @@
     <title>Secure Share | Files</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script>
         tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
     </script>
-    <style>
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
-    </style>
 </head>
 <body class="bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30 min-h-screen flex flex-col">
 
@@ -62,7 +55,7 @@
             </a>
             {% endif %}
 
-            <!-- Folders -->
+            <!-- Folders Loop -->
             {% for folder in folders %}
             <a href="{{ url_for('client_files', path=folder.path) }}" class="file-card group bg-slate-900/50 border border-white/5 hover:border-amber-500/30 hover:bg-slate-900 rounded-xl p-4 flex flex-col justify-between min-h-[180px] transition-all hover:-translate-y-1 relative overflow-hidden">
                 <div class="absolute top-0 right-0 p-2 text-amber-500/20 group-hover:text-amber-500/50 transition"><i class="fas fa-folder text-6xl"></i></div>
@@ -76,7 +69,7 @@
             </a>
             {% endfor %}
 
-            <!-- Files -->
+            <!-- Files Loop -->
             {% for file in files %}
             <div class="file-card group bg-slate-900/50 border border-white/5 hover:border-cyan-500/30 hover:bg-slate-900 rounded-xl p-4 flex flex-col justify-between min-h-[180px] transition-all hover:-translate-y-1 relative overflow-hidden">
                 <div class="absolute top-0 right-0 p-2 text-cyan-500/10 group-hover:text-cyan-500/20 transition"><i class="fas fa-file text-6xl"></i></div>
@@ -89,7 +82,7 @@
                     <p class="text-xs text-slate-500">{{ file.size }} MB</p>
                 </div>
 
-                <!-- Download Action (Triggers JS) -->
+                <!-- Download Action -->
                 <button onclick="initiateDownload('{{ file.name }}', '{{ file.path }}')" class="relative z-10 mt-4 w-full py-2 rounded-lg bg-slate-800 hover:bg-cyan-600 text-slate-300 hover:text-white text-xs font-bold uppercase tracking-wide transition-colors border border-white/5">
                     Download
                 </button>
@@ -142,140 +135,7 @@
     </div>
 </div>
 
-<script>
-    // --- VIEW TOGGLE ---
-    let isGridView = true;
-    const container = document.getElementById('fileContainer');
-
-    function toggleView() {
-        isGridView = !isGridView;
-        const icon = document.getElementById('viewIcon');
-
-        if (isGridView) {
-            container.classList.remove('flex', 'flex-col');
-            container.classList.add('grid', 'grid-cols-1', 'sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4');
-            icon.className = "fas fa-list-ul";
-
-            // Reset card styles for Grid
-            document.querySelectorAll('.file-card').forEach(el => {
-                el.classList.remove('flex-row', 'items-center', 'min-h-[60px]');
-                el.classList.add('flex-col', 'min-h-[180px]');
-                el.querySelector('.fa-file').parentNode.classList.remove('hidden'); // Show big icon bg
-            });
-        } else {
-            container.classList.remove('grid', 'grid-cols-1', 'sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4');
-            container.classList.add('flex', 'flex-col');
-            icon.className = "fas fa-th-large";
-
-            // Set card styles for List
-            document.querySelectorAll('.file-card').forEach(el => {
-                el.classList.remove('flex-col', 'min-h-[180px]');
-                el.classList.add('flex-row', 'items-center', 'min-h-[60px]', 'gap-4');
-                el.querySelector('.fa-file').parentNode.classList.add('hidden'); // Hide big icon bg
-            });
-        }
-    }
-
-    // --- LIVE STATUS POLLING ---
-    let pausedState = false;
-
-    function checkStatus() {
-        fetch('/api/client/status')
-            .then(r => r.json())
-            .then(data => {
-                // Handle Offline
-                if (!data.running) window.location.reload();
-
-                // Handle Pause
-                const overlay = document.getElementById('pauseOverlay');
-                const main = document.getElementById('main-content');
-
-                if (data.paused && !pausedState) {
-                    pausedState = true;
-                    overlay.classList.remove('opacity-0', 'pointer-events-none');
-                    main.classList.add('blur-sm');
-                } else if (!data.paused && pausedState) {
-                    pausedState = false;
-                    overlay.classList.add('opacity-0', 'pointer-events-none');
-                    main.classList.remove('blur-sm');
-                }
-            });
-    }
-    setInterval(checkStatus, 1000);
-
-    // --- DOWNLOAD FLOW ---
-    const modal = document.getElementById('approvalModal');
-    const content = document.getElementById('approvalContent');
-    let pollInterval = null;
-
-    function initiateDownload(filename, path) {
-        // Open Modal
-        modal.classList.remove('opacity-0', 'pointer-events-none');
-        content.classList.remove('scale-95');
-        content.classList.add('scale-100');
-
-        // Reset Modal State
-        document.getElementById('statusWaiting').classList.remove('hidden');
-        document.getElementById('statusRejected').classList.add('hidden');
-        document.getElementById('statusApproved').classList.add('hidden');
-
-        // Request Download
-        fetch('/api/client/request_download', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({filename: filename})
-        })
-            .then(r => r.json())
-            .then(data => {
-                if (data.status === 'approved') {
-                    // Direct download
-                    closeModal();
-                    window.location.href = data.direct_link;
-                } else if (data.status === 'pending') {
-                    // Start Polling
-                    document.getElementById('reqIdDisplay').innerText = "ID: " + data.req_id.substring(0, 8);
-                    pollRequest(data.req_id);
-                }
-            });
-    }
-
-    function pollRequest(reqId) {
-        pollInterval = setInterval(() => {
-            fetch('/api/client/check_request/' + reqId)
-                .then(r => r.json())
-                .then(data => {
-                    if (data.status === 'approved') {
-                        clearInterval(pollInterval);
-                        showApproved();
-                        setTimeout(() => {
-                            window.location.href = data.link;
-                            closeModal();
-                        }, 1500);
-                    } else if (data.status === 'rejected') {
-                        clearInterval(pollInterval);
-                        showRejected();
-                    }
-                });
-        }, 1000);
-    }
-
-    function showApproved() {
-        document.getElementById('statusWaiting').classList.add('hidden');
-        document.getElementById('statusApproved').classList.remove('hidden');
-    }
-
-    function showRejected() {
-        document.getElementById('statusWaiting').classList.add('hidden');
-        document.getElementById('statusRejected').classList.remove('hidden');
-    }
-
-    function closeModal() {
-        modal.classList.add('opacity-0', 'pointer-events-none');
-        content.classList.add('scale-95');
-        content.classList.remove('scale-100');
-        if (pollInterval) clearInterval(pollInterval);
-    }
-
-</script>
+<!-- External JS -->
+<script src="{{ url_for('static', filename='js/client.js') }}"></script>
 </body>
 </html>
