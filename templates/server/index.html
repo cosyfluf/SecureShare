@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Secure Share | Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] } } } }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans min-h-screen flex">
+
+<!-- Sidebar -->
+<aside class="w-64 bg-slate-900 border-r border-slate-800 p-6 flex flex-col">
+    <div class="flex items-center gap-3 mb-10">
+        <div class="p-2 bg-cyan-600 rounded-lg"><i class="fas fa-server text-white"></i></div>
+        <h1 class="font-bold text-lg tracking-tight">Secure Admin</h1>
+    </div>
+
+    <nav class="space-y-2 flex-1">
+        <a href="#" class="block px-4 py-2 rounded-lg bg-slate-800 text-cyan-400"><i class="fas fa-tachometer-alt mr-3"></i>Dashboard</a>
+    </nav>
+
+    <div class="mt-auto pt-6 border-t border-slate-800 text-xs text-slate-500">
+        System Online<br>Port: 5000
+    </div>
+</aside>
+
+<!-- Main Content -->
+<main class="flex-1 p-8 overflow-y-auto relative">
+
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-8">
+        <h2 class="text-2xl font-bold">Server Control</h2>
+        <div id="status-indicator" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <i class="fas fa-circle text-[8px] mr-2"></i>Active
+        </div>
+    </header>
+
+    <!-- Controls Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+
+        <!-- Config Card -->
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2"><i class="fas fa-cogs text-slate-400"></i> Configuration</h3>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs uppercase text-slate-500 font-bold mb-1">Shared Folder Path</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="folderPath" class="flex-1 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none transition" value="{{ config.folder_path }}">
+                        <button onclick="updateConfig('folder')" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded border border-slate-700 transition group">
+                            <i class="fas fa-save text-slate-400 group-hover:text-white"></i>
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs uppercase text-slate-500 font-bold mb-1">Client Password</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="clientPass" class="flex-1 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none transition" value="{{ config.password }}">
+                        <button onclick="updateConfig('password')" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded border border-slate-700 transition group">
+                            <i class="fas fa-save text-slate-400 group-hover:text-white"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toggles Card -->
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+            <h3 class="text-lg font-semibold mb-4 flex items-center gap-2"><i class="fas fa-toggle-on text-slate-400"></i> Live State</h3>
+
+            <div class="space-y-4">
+                <!-- Master Switch -->
+                <div class="flex justify-between items-center p-3 bg-slate-950 rounded-lg border border-slate-800">
+                    <div>
+                        <div class="font-medium text-sm text-white">Server Online</div>
+                        <div class="text-xs text-slate-500">Allow client connections</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggleRunning" class="sr-only peer" onchange="toggleState('is_running')">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                    </label>
+                </div>
+
+                <!-- Pause Switch -->
+                <div class="flex justify-between items-center p-3 bg-slate-950 rounded-lg border border-slate-800">
+                    <div>
+                        <div class="font-medium text-sm text-white">Pause Access</div>
+                        <div class="text-xs text-slate-500">Blur client screen & block downloads</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="togglePause" class="sr-only peer" onchange="toggleState('is_paused')">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                </div>
+
+                <!-- Approval Switch -->
+                <div class="flex justify-between items-center p-3 bg-slate-950 rounded-lg border border-slate-800">
+                    <div>
+                        <div class="font-medium text-sm text-white">Require Approval</div>
+                        <div class="text-xs text-slate-500">Admin must approve downloads</div>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggleApproval" class="sr-only peer" onchange="toggleState('require_approval')">
+                        <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Requests -->
+    <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-6">
+        <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+            <i class="fas fa-list-check text-slate-400"></i> Pending Approvals
+            <span id="pendingCount" class="ml-2 px-2 py-0.5 rounded text-xs bg-purple-500 text-white">0</span>
+        </h3>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-slate-400">
+                <thead class="text-xs text-slate-500 uppercase bg-slate-950/50">
+                <tr>
+                    <th class="px-4 py-3">Time</th>
+                    <th class="px-4 py-3">File</th>
+                    <th class="px-4 py-3">Action</th>
+                </tr>
+                </thead>
+                <tbody id="requestsTable" class="divide-y divide-slate-800">
+                <!-- Populated by JS -->
+                <tr class="text-center py-4"><td colspan="3" class="py-4">No pending requests</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<!--
+    CUSTOM NOTIFICATION TOAST
+    Hidden by default (opacity-0, translate-y-20).
+-->
+<div id="notificationToast" class="fixed bottom-6 right-6 px-6 py-4 rounded-xl bg-slate-900 border border-emerald-500/30 shadow-2xl shadow-emerald-500/10 transform translate-y-20 opacity-0 transition-all duration-500 cubic-bezier(0.4, 0, 0.2, 1) flex items-center gap-4 z-50">
+    <div class="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+        <i class="fas fa-check"></i>
+    </div>
+    <div>
+        <h4 class="text-sm font-bold text-white">System Update</h4>
+        <p id="toastMessage" class="text-xs text-slate-400">Changes saved successfully.</p>
+    </div>
+</div>
+
+<script>
+    // --- UI: Notification System ---
+    let toastTimeout;
+
+    function showNotification(message) {
+        const toast = document.getElementById('notificationToast');
+        const msgEl = document.getElementById('toastMessage');
+
+        // Set text
+        msgEl.innerText = message;
+
+        // Animate In
+        toast.classList.remove('translate-y-20', 'opacity-0');
+
+        // Clear existing timeout if multiple clicks happen fast
+        if (toastTimeout) clearTimeout(toastTimeout);
+
+        // Auto Hide after 3 seconds
+        toastTimeout = setTimeout(() => {
+            toast.classList.add('translate-y-20', 'opacity-0');
+        }, 3000);
+    }
+
+    // --- Live State Management ---
+
+    function fetchState() {
+        fetch('/admin/api/status')
+            .then(r => r.json())
+            .then(data => {
+                const c = data.config;
+                document.getElementById('toggleRunning').checked = c.is_running;
+                document.getElementById('togglePause').checked = c.is_paused;
+                document.getElementById('toggleApproval').checked = c.require_approval;
+
+                // Visual Indicator
+                const indicator = document.getElementById('status-indicator');
+                if (c.is_running) {
+                    indicator.className = "px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                    indicator.innerHTML = '<i class="fas fa-circle text-[8px] mr-2"></i>Active';
+                } else {
+                    indicator.className = "px-3 py-1 rounded-full text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30";
+                    indicator.innerHTML = '<i class="fas fa-circle text-[8px] mr-2"></i>Offline';
+                }
+            });
+    }
+
+    function toggleState(key) {
+        const val = document.getElementById(key === 'is_running' ? 'toggleRunning' : key === 'is_paused' ? 'togglePause' : 'toggleApproval').checked;
+        fetch('/admin/api/status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({[key]: val})
+        }).then(() => {
+            // Optional: Show toast for toggles too, if desired
+            // showNotification('State updated.');
+            fetchState();
+        });
+    }
+
+    function updateConfig(type) {
+        const val = type === 'folder' ? document.getElementById('folderPath').value : document.getElementById('clientPass').value;
+        const key = type === 'folder' ? 'folder_path' : 'password';
+
+        fetch('/admin/api/status', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({[key]: val})
+        }).then(() => {
+            // Trigger custom toast instead of alert()
+            const msg = type === 'folder' ? 'Shared folder path updated successfully.' : 'Access password updated successfully.';
+            showNotification(msg);
+        });
+    }
+
+    // --- Pending Requests Logic ---
+
+    function fetchRequests() {
+        fetch('/admin/api/requests')
+            .then(r => r.json())
+            .then(data => {
+                const tbody = document.getElementById('requestsTable');
+                const keys = Object.keys(data);
+                document.getElementById('pendingCount').innerText = keys.length;
+
+                if (keys.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" class="px-4 py-4 text-center italic text-slate-600">No pending requests</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = keys.map(id => {
+                    const req = data[id];
+                    const timeStr = new Date(req.timestamp * 1000).toLocaleTimeString();
+                    return `
+                            <tr class="bg-slate-900/20 hover:bg-slate-800/50 transition">
+                                <td class="px-4 py-3 font-mono text-xs">${timeStr}</td>
+                                <td class="px-4 py-3 text-white font-medium">${req.file}</td>
+                                <td class="px-4 py-3 flex gap-2">
+                                    <button onclick="decide('${id}', 'approved')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs transition">Approve</button>
+                                    <button onclick="decide('${id}', 'rejected')" class="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs transition">Reject</button>
+                                </td>
+                            </tr>
+                        `;
+                }).join('');
+            });
+    }
+
+    function decide(reqId, decision) {
+        fetch('/admin/api/decision', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({req_id: reqId, decision: decision})
+        }).then(() => {
+            fetchRequests();
+            showNotification(`Request ${decision}.`);
+        });
+    }
+
+    // Poll loops
+    setInterval(fetchState, 2000);
+    setInterval(fetchRequests, 2000);
+    fetchState();
+    fetchRequests();
+</script>
+</body>
+</html>
