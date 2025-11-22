@@ -73,6 +73,35 @@ function toggleState(key) {
 }
 
 /**
+ * Triggers the server-side OS file picker dialog.
+ * Upon selection, updates the input field value automatically.
+ */
+function openFilePicker() {
+    // Disable button temporarily to prevent double clicks
+    const btn = event.currentTarget;
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+    fetch('/admin/api/browse')
+        .then(response => response.json())
+        .then(data => {
+            // Re-enable button
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+
+            if (data.path) {
+                document.getElementById('folderPath').value = data.path;
+                showNotification("Folder selected. Click Save to apply.");
+            }
+        })
+        .catch(err => {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            console.error(err);
+        });
+}
+
+/**
  * Updates text configuration (Password or Folder Path).
  *
  * @param {string} type - 'folder' or 'password'.

@@ -3,6 +3,8 @@ import uuid
 import time
 import threading
 import webbrowser
+import tkinter as tk
+from tkinter import filedialog
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, send_from_directory, flash, jsonify
 
@@ -20,7 +22,6 @@ SERVER_CONFIG = {
 }
 
 # In-memory storage for download requests
-# Structure: { uuid: { 'file': path, 'status': 'pending'|'approved'|'rejected', 'ts': time } }
 DOWNLOAD_REQUESTS = {}
 
 
@@ -55,7 +56,7 @@ def admin_api_status():
     """
     API Endpoint for Server Status.
 
-    GET: Retrieves current configuration, active user count (estimated), and pending requests.
+    GET: Retrieves current configuration, active user count, and pending requests.
     POST: Updates configuration settings (password, folder path, toggles).
     """
     if request.method == 'POST':
@@ -81,6 +82,33 @@ def admin_api_status():
         "active_users": 1 if session.get('logged_in') else 0,
         "pending_count": len([r for r in DOWNLOAD_REQUESTS.values() if r['status'] == 'pending'])
     })
+
+
+@app.route('/admin/api/browse', methods=['GET'])
+def admin_api_browse():
+    """
+    Opens a server-side OS dialog to select a folder.
+    Uses tkinter (headless) to spawn the directory chooser.
+    Returns the selected path to the frontend.
+    """
+    try:
+        # Create a hidden root window for tkinter
+        root = tk.Tk()
+        root.withdraw()  # Hide the main window
+        root.attributes('-topmost', True)  # Bring dialog to front
+
+        # Open Directory Picker
+        path = filedialog.askdirectory(initialdir=SERVER_CONFIG['folder_path'], title="Select Shared Folder")
+
+        root.destroy()  # Cleanup
+
+        if path:
+            return jsonify({"path": path})
+        else:
+            return jsonify({"path": None})  # User cancelled
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/admin/api/requests')
@@ -218,8 +246,6 @@ def client_status():
 def request_download():
     """
     Initiates a download request.
-    If approval is not required, returns a direct link immediately.
-    If approval is required, creates a request ticket and returns the ID.
     """
     filename = request.json.get('filename')
     full_path = os.path.join(SERVER_CONFIG["folder_path"], filename)
@@ -256,7 +282,6 @@ def check_request(req_id):
     response = {"status": req['status']}
 
     if req['status'] == 'approved':
-        # Provide the download link with the verification token
         response['link'] = url_for('download_content', filename=req['file'], token=req_id)
 
     return jsonify(response)
@@ -267,7 +292,6 @@ def check_request(req_id):
 def download_content():
     """
     Serves the actual file.
-    Verifies the token if approval mode is active.
     """
     filename = request.args.get('filename')
     token = request.args.get('token')
@@ -276,11 +300,8 @@ def download_content():
         return "Server Paused", 403
 
     if SERVER_CONFIG["require_approval"]:
-        # Verify request token matches an approved request
         if not token or token not in DOWNLOAD_REQUESTS or DOWNLOAD_REQUESTS[token]['status'] != 'approved':
             return "Access Denied / Not Approved", 403
-
-        # Cleanup request
         del DOWNLOAD_REQUESTS[token]
 
     return send_from_directory(SERVER_CONFIG["folder_path"], filename, as_attachment=True)

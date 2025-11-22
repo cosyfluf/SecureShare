@@ -47,15 +47,25 @@
             <h3 class="text-lg font-semibold mb-4 flex items-center gap-2"><i class="fas fa-cogs text-slate-400"></i> Configuration</h3>
 
             <div class="space-y-4">
+                <!-- Folder Path Input with Browse Button -->
                 <div>
                     <label class="block text-xs uppercase text-slate-500 font-bold mb-1">Shared Folder Path</label>
                     <div class="flex gap-2">
                         <input type="text" id="folderPath" class="flex-1 bg-slate-950 border border-slate-700 rounded px-3 py-2 text-sm focus:border-cyan-500 focus:outline-none transition" value="{{ config.folder_path }}">
-                        <button onclick="updateConfig('folder')" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded border border-slate-700 transition group">
+
+                        <!-- Browse Button -->
+                        <button onclick="openFilePicker()" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded border border-slate-700 transition group" title="Browse Folder">
+                            <i class="fas fa-folder-open text-amber-500 group-hover:text-amber-400"></i>
+                        </button>
+
+                        <!-- Save Button -->
+                        <button onclick="updateConfig('folder')" class="bg-slate-800 hover:bg-slate-700 px-3 py-2 rounded border border-slate-700 transition group" title="Save Path">
                             <i class="fas fa-save text-slate-400 group-hover:text-white"></i>
                         </button>
                     </div>
                 </div>
+
+                <!-- Password Input -->
                 <div>
                     <label class="block text-xs uppercase text-slate-500 font-bold mb-1">Client Password</label>
                     <div class="flex gap-2">
