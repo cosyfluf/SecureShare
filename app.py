@@ -19,7 +19,8 @@ SERVER_CONFIG = {
     "is_running": True,          # Controls client login ability
     "is_paused": False,          # Controls visibility of client content
     "require_approval": False,   # Controls if admin must approve downloads
-    "session_token": str(uuid.uuid4()) # Unique token to validate active sessions
+    "session_token": str(uuid.uuid4()), # Unique token to validate active sessions
+    "config_id": str(uuid.uuid4())      # Unique ID that changes when the root folder changes
 }
 
 # In-memory storage for download requests
@@ -66,6 +67,8 @@ def admin_api_status():
         if 'folder_path' in data:
             if os.path.exists(data['folder_path']):
                 SERVER_CONFIG['folder_path'] = data['folder_path']
+                # Update config_id to signal clients that the root folder has changed
+                SERVER_CONFIG['config_id'] = str(uuid.uuid4())
         if 'is_running' in data:
             SERVER_CONFIG['is_running'] = data['is_running']
         if 'is_paused' in data:
@@ -197,7 +200,8 @@ def client_files():
         return "Invalid Path", 403
 
     if not os.path.exists(abs_path):
-        return "Directory not found", 404
+        # If the path doesn't exist (e.g., after root folder change), redirect to root
+        return redirect(url_for('client_files'))
 
     files_list = []
     folders_list = []
@@ -233,6 +237,7 @@ def client_status():
     """
     API used by client.js to poll status.
     Returns 'force_logout' = True if the session token is invalid/expired.
+    Returns 'config_id' to detect if the admin has changed the root folder.
     """
     # Check if the token in the user's cookie matches the current server token
     token_valid = session.get('token') == SERVER_CONFIG['session_token']
@@ -244,7 +249,8 @@ def client_status():
     return jsonify({
         "paused": SERVER_CONFIG["is_paused"],
         "running": SERVER_CONFIG["is_running"],
-        "force_logout": force_logout
+        "force_logout": force_logout,
+        "config_id": SERVER_CONFIG["config_id"]
     })
 
 

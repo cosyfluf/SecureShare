@@ -9,6 +9,12 @@ let isGridView = true;
 let pausedState = false;
 
 /**
+ * Stores the current server configuration ID.
+ * If this changes (e.g., admin changes the root folder), the page reloads.
+ */
+let currentConfigId = null;
+
+/**
  * Interval ID for polling download request status.
  */
 let pollInterval = null;
@@ -45,7 +51,7 @@ function toggleView() {
 }
 
 /**
- * Polls status. Checks for force logout flag.
+ * Polls status. Checks for force logout flag and root folder changes.
  */
 function checkStatus() {
     fetch('/api/client/status')
@@ -60,6 +66,15 @@ function checkStatus() {
             // Reload if server goes offline
             if (!data.running) {
                 window.location.reload();
+                return;
+            }
+
+            // Detect if the Admin changed the root folder
+            if (currentConfigId === null) {
+                currentConfigId = data.config_id;
+            } else if (currentConfigId !== data.config_id) {
+                // Config ID changed, redirect to base files path to refresh content
+                window.location.href = '/files';
                 return;
             }
 
