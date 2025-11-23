@@ -40,7 +40,7 @@ The Admin Panel will open automatically in your browser.
 
 ## How to use
 
-### 👮 For You ( The Admin)
+### 👮 For You (The Admin)
 *   **Dashboard:** Go to `http://localhost:55322/admin`.
 *   **Pick a Folder:** Use the browse button to select what you want to share.
 *   **Set a Password:** Keep strangers out.
