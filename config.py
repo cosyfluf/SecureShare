@@ -2,12 +2,12 @@ import os
 import uuid
 import socket
 
-# Verzeichnisse definieren
+#define directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
 STATIC_DIR = os.path.join(BASE_DIR, 'static')
 
-# Globaler Server Status
+# Global server status
 SERVER_CONFIG = {
     "folder_path": os.getcwd(),
     "password": "admin",
@@ -18,10 +18,10 @@ SERVER_CONFIG = {
     "config_id": str(uuid.uuid4())
 }
 
-# In-Memory Speicher für Downloads
+# In-Memory storage for downloads
 DOWNLOAD_REQUESTS = {}
 
-# Dynamischen Port für Admin-Panel finden
+#looking for dynamic port for admin-panel
 def get_free_port():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(('127.0.0.1', 0))

@@ -20,12 +20,12 @@ def run_admin():
     admin_app.run(host='127.0.0.1', port=ADMIN_PORT, debug=False, use_reloader=False)
 
 if __name__ == "__main__":
-    # Browser Launcher Thread
+    # Browser launcher thread
     threading.Thread(target=open_browser, daemon=True).start()
 
-    # Client Server Thread
+    # Client server thread
     client_thread = threading.Thread(target=run_client, daemon=True)
     client_thread.start()
 
-    # Admin Server (Hauptthread)
+    # Admin server (mainthread)
     run_admin()
