@@ -26,7 +26,7 @@ def admin_api_status():
             SERVER_CONFIG['folder_path'] = data['folder_path']
             SERVER_CONFIG['config_id'] = str(uuid.uuid4())
         return jsonify({"status": "updated"})
-    
+
     return jsonify({
         "config": SERVER_CONFIG,
         "pending_count": len([r for r in DOWNLOAD_REQUESTS.values() if r['status'] == 'pending'])
@@ -41,4 +41,21 @@ def admin_api_browse():
     root.destroy()
     return jsonify({"path": path if path else None})
 
-# ... (Hier die restlichen Admin-API-Routen wie logout_all, requests, decision einfügen)
+@admin_app.route('/admin/api/logout_all', methods=['POST'])
+def admin_api_logout_all():
+    SERVER_CONFIG['session_token'] = str(uuid.uuid4())
+    return jsonify({"success": True})
+
+@admin_app.route('/admin/api/requests')
+def admin_api_requests():
+    pending = {k: v for k, v in DOWNLOAD_REQUESTS.items() if v['status'] == 'pending'}
+    return jsonify(pending)
+
+@admin_app.route('/admin/api/decision', methods=['POST'])
+def admin_api_decision():
+    data = request.json
+    req_id, decision = data.get('req_id'), data.get('decision')
+    if req_id in DOWNLOAD_REQUESTS:
+        DOWNLOAD_REQUESTS[req_id]['status'] = decision
+        return jsonify({"success": True})
+    return jsonify({"error": "Not found"}), 404
