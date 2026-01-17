@@ -6,7 +6,6 @@ from client_routes import client_app
 from admin_routes import admin_app
 
 def open_browser():
-    """Öffnet das Admin-Panel nach dem Start."""
     time.sleep(1.5)
     admin_url = f"http://127.0.0.1:{ADMIN_PORT}/admin"
     print(f"\n[INFO] Admin Panel: {admin_url}")
